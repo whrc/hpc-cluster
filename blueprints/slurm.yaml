@@ -1,0 +1,110 @@
+blueprint_name: slurm-lustre
+
+vars:
+  project_id: upbeat-polygon-242617
+  deployment_name: slurm-lustre
+  region: us-central1
+  zone: us-central1-c
+  startup_timeouts: 60
+  network_name: slurm-gcp-net
+  subnetwork_name: slurm-gcp-primary-subnet
+  image:
+    family: slurm-gcp-6-8-ubuntu-2004-lts
+    project: schedmd-slurm-public
+  
+terraform_backend_defaults:
+  type: gcs
+  configuration:
+    bucket: flood-hpc
+
+deployment_groups:
+- group: primary
+  modules:
+  - id: network1
+    source: modules/network/pre-existing-vpc
+    settings:
+        project_id: $(vars.project_id)
+        region: $(vars.region)
+        network_name: $(vars.network_name)
+        subnetwork_name: $(vars.subnetwork_name)
+
+  - id: debug_node_group
+    source: community/modules/compute/schedmd-slurm-gcp-v6-nodeset
+    use:
+      - network1
+    settings:
+      node_count_dynamic_max: 4
+      machine_type: n2-standard-2
+      instance_image: $(vars.image)
+      startup_script: |
+        apt-get install libnuma-dev libnetcdf-dev -y
+        mkdir -p /data
+        chmod 1777 /data
+
+  - id: debug_partition
+    source: community/modules/compute/schedmd-slurm-gcp-v6-partition
+    use:
+    - debug_node_group
+    settings:
+      partition_name: debug
+
+  - id: compute_node_group
+    source: community/modules/compute/schedmd-slurm-gcp-v6-nodeset
+    use:
+      - network1
+    settings:
+      node_count_dynamic_max: 250
+      machine_type: n2-standard-2
+      instance_image: $(vars.image)
+      preemptible: true
+      enable_spot_vm: true
+      spot_instance_config:
+        termination_action: "STOP"
+      startup_script: |
+        apt-get install libnuma-dev libnetcdf-dev -y
+        mkdir -p /data
+        chmod 1777 /data
+
+  - id: compute_partition
+    source: community/modules/compute/schedmd-slurm-gcp-v6-partition
+    use:
+    - compute_node_group
+    settings:
+      partition_name: compute
+
+  - id: slurm_login
+    source: community/modules/scheduler/schedmd-slurm-gcp-v6-login
+    use:
+    - network1
+    settings:
+      machine_type: n2-standard-2
+      instance_image: $(vars.image)
+
+      disk_type: pd-standard
+      enable_login_public_ips: true
+
+  - id: slurm_controller
+    source: community/modules/scheduler/schedmd-slurm-gcp-v6-controller
+    use:
+    - network1
+    - compute_partition
+    - debug_partition
+    - slurm_login
+    settings:
+      machine_type: c2-standard-4
+      instance_image: $(vars.image)
+
+      disk_type: pd-ssd
+      login_startup_script: |
+        apt-get install cmake libnuma-dev libnetcdf-dev -y
+      controller_startup_script: |
+        cd /usr/local/etc/slurm
+        sed -i 's/SchedulerType=sched\/backfill/SchedulerType=sched\/builtin/g' slurm.conf
+        sed -i 's/JobAcctGatherType=jobacct_gather\/cgroup/JobAcctGatherType=jobacct_gather\/none/g' slurm.conf
+        sed -i 's/SlurmctldDebug=.*/SlurmctldDebug=error/g; s/SlurmdDebug=.*/SlurmdDebug=error/g' slurm.conf
+        sed -i 's/SchedulerParameters=salloc_wait_nodes/SchedulerParameters=salloc_wait_nodes,defer_batch,batch_sched_delay=20/g' cloud.conf
+        sed -i 's/TaskPlugin=task\/affinity,task\/cgroup/TaskPlugin=task\/affinity/g' slurm.conf
+        systemctl restart slurmctld.service
+      login_startup_scripts_timeout: $(vars.startup_timeouts)
+      controller_startup_scripts_timeout: $(vars.startup_timeouts)
+      compute_startup_scripts_timeout: $(vars.startup_timeouts)
