@@ -1,0 +1,21 @@
+blueprint_name: vpc
+
+vars:
+  project_id: rangelands-explo-1571664594580
+  deployment_name: vpc
+  region: us-central1
+  zone: us-central1-c
+  
+terraform_backend_defaults:
+  type: gcs
+  configuration:
+    bucket: rangelands-hpc
+
+deployment_groups:
+- group: primary
+  modules:
+  - id: network1
+    source: modules/network/vpc
+    settings:
+        project_id: $(vars.project_id)
+        region: $(vars.region)

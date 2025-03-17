@@ -5,8 +5,10 @@ vars:
   deployment_name: slurm-cluster
   region: us-central1
   zone: us-central1-c
+  network_name: vpc-net
+  subnetwork_name: vpc-primary-subnet
   custom_image:
-    family: rangelands-hpc-base
+    name: rangelands-hpc-base-20250317t160501z
     project: $(vars.project_id)
   disk_size: 100
   
@@ -19,37 +21,12 @@ deployment_groups:
 - group: primary
   modules:
   - id: network1
-    source: modules/network/vpc
+    source: modules/network/pre-existing-vpc
     settings:
         project_id: $(vars.project_id)
         region: $(vars.region)
-
-  - id: scripts_for_image
-    source: modules/scripts/startup-script
-    settings:
-      runners:
-      - type: data
-        source: $(ghpc_stage("../dependencies/requirements.txt"))
-        destination: /opt/requirements.txt
-      - type: shell
-        source: $(ghpc_stage("../scripts/startup_script.sh"))
-        destination: /opt/setup_env.sh
-
-- group: packer
-  modules:
-  - id: custom-image
-    source: modules/packer/custom-image
-    kind: packer
-    use:
-    - network1
-    - scripts_for_image
-    settings:
-      source_image_project_id: [schedmd-slurm-public]
-      source_image_family: slurm-gcp-6-8-ubuntu-2004-lts
-      image_family: $(vars.custom_image.family)
-      disk_size: $(vars.disk_size)
-      omit_external_ip: false
-      state_timeout: 15m
+        network_name: $(vars.network_name)
+        subnetwork_name: $(vars.subnetwork_name)
 
 - group: cluster
   modules:
