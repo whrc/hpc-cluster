@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 cluster-toolkit/gcluster create blueprints/slurm.yaml -w
 cluster-toolkit/gcluster deploy slurm-cluster --auto-approve
 
