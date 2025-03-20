@@ -22,3 +22,4 @@ xarray==2024.10.0
 xarrayMannKendall==1.4.5
 h5netcdf==1.5.0
 ipykernel
+git+https://github.com/whrc/rctm-extra.git
