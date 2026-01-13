@@ -1,0 +1,109 @@
+# Deploy Slurm cluster using manually created custom image
+# Image should be created manually with family: dvmdostem-slurm-v1
+# Usage:
+#   cd cluster-toolkit
+#   ./ghpc create ../cluster.yaml -w
+#   ./ghpc deploy cluster
+
+blueprint_name: cluster
+
+vars:
+  project_id: pdg-wg-carbon
+  deployment_name: cluster
+  region: us-central1
+  zone: us-central1-a
+  image_family: dvmdostem-slurm-v1
+
+deployment_groups:
+- group: primary
+  modules:
+  - id: network
+    source: modules/network/vpc
+    settings:
+      allowed_ssh_ip_ranges: ["0.0.0.0/0"]
+
+- group: cluster
+  modules:
+  - id: dask_nodeset
+    source: community/modules/compute/schedmd-slurm-gcp-v6-nodeset
+    use: [network]
+    settings:
+      node_count_dynamic_max: 100
+      machine_type: c2-standard-8
+      preemptible: true
+      disk_size_gb: 100
+      instance_image:
+        family: $(vars.image_family)
+        project: $(vars.project_id)
+
+  - id: spot_nodeset
+    source: community/modules/compute/schedmd-slurm-gcp-v6-nodeset
+    use: [network]
+    settings:
+      node_count_dynamic_max: 100
+      machine_type: c2-standard-16
+      preemptible: true
+      disk_size_gb: 100
+      instance_image:
+        family: $(vars.image_family)
+        project: $(vars.project_id)
+
+  - id: compute_nodeset
+    source: community/modules/compute/schedmd-slurm-gcp-v6-nodeset
+    use: [network]
+    settings:
+      node_count_dynamic_max: 100
+      machine_type: c2-standard-30
+      preemptible: true
+      disk_size_gb: 100
+      instance_image:
+        family: $(vars.image_family)
+        project: $(vars.project_id)
+
+  - id: dask_partition
+    source: community/modules/compute/schedmd-slurm-gcp-v6-partition
+    use: [dask_nodeset]
+    settings:
+      partition_name: dask
+      is_default: false
+
+  - id: spot_partition
+    source: community/modules/compute/schedmd-slurm-gcp-v6-partition
+    use: [spot_nodeset]
+    settings:
+      partition_name: spot
+      is_default: false
+
+  - id: compute_partition
+    source: community/modules/compute/schedmd-slurm-gcp-v6-partition
+    use: [compute_nodeset]
+    settings:
+      partition_name: compute
+      is_default: true
+
+  - id: slurm_login
+    source: community/modules/scheduler/schedmd-slurm-gcp-v6-login
+    use: [network]
+    settings:
+      machine_type: n2-standard-4
+      enable_login_public_ips: true
+      disk_size_gb: 100
+      instance_image:
+        family: $(vars.image_family)
+        project: $(vars.project_id)
+
+  - id: slurm_controller
+    source: community/modules/scheduler/schedmd-slurm-gcp-v6-controller
+    use: [network, dask_partition, spot_partition, compute_partition, slurm_login]
+    settings:
+      enable_controller_public_ips: true
+      disk_size_gb: 100
+      instance_image:
+        family: $(vars.image_family)
+        project: $(vars.project_id)
+      login_startup_script: |
+        apt-get update
+        apt-get install tree python-is-python3 pipx
+        # git clone https://github.com/whrc/batch-processing.git /opt/batch-processing
+        # cd /opt/batch-processing
+        # python3 -m pip install .
