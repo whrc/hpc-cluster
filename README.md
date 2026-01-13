@@ -49,3 +49,4 @@ So, modify that file to tweak the dependencies.
 ## Troubleshooting
 
 - **Image creation fails:** The image creation script handles everything to build an image. While doing that, it connects via SSH to a temporary machine to install the dependencies. However, it may fail at that step if you don't have SSH configured on your machine through `gcloud`. If you experience this issue, you can manually run the Bash commands that are clearly separated in the `image-build.sh` file.
+- **Dependency script fails:** The dependency script may fail due to lack of permissions during image creation. If that's the case, SSH into the machine, login as root (`sudo su -`) and rerun the script. That would resolve the permission issue.
