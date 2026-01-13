@@ -8,19 +8,19 @@ IMAGE_FAMILY="dvmdostem-slurm-v1"
 BASE_IMAGE_FAMILY="slurm-gcp-6-11-ubuntu-2404-lts-nvidia-570"
 BASE_IMAGE_PROJECT="schedmd-slurm-public"
 
-# echo "=== Step 1: Creating temporary VM ==="
-# gcloud compute instances create $VM_NAME \
-#   --project=$PROJECT_ID \
-#   --zone=$ZONE \
-#   --machine-type=n2-standard-4 \
-#   --image-family=$BASE_IMAGE_FAMILY \
-#   --image-project=$BASE_IMAGE_PROJECT \
-#   --boot-disk-size=200GB \
-#   --scopes=cloud-platform
+echo "=== Step 1: Creating temporary VM ==="
+gcloud compute instances create $VM_NAME \
+  --project=$PROJECT_ID \
+  --zone=$ZONE \
+  --machine-type=n2-standard-4 \
+  --image-family=$BASE_IMAGE_FAMILY \
+  --image-project=$BASE_IMAGE_PROJECT \
+  --boot-disk-size=200GB \
+  --scopes=cloud-platform
 
-# echo ""
-# echo "=== Step 2: Waiting for VM to be ready ==="
-# sleep 30
+echo ""
+echo "=== Step 2: Waiting for VM to be ready ==="
+sleep 30
 
 echo ""
 echo "=== Step 3: Establishing SSH connection and adding host keys ==="
