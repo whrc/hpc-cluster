@@ -15,7 +15,7 @@ gcloud compute instances create $VM_NAME \
   --machine-type=n2-standard-4 \
   --image-family=$BASE_IMAGE_FAMILY \
   --image-project=$BASE_IMAGE_PROJECT \
-  --boot-disk-size=100GB \
+  --boot-disk-size=200GB \
   --scopes=cloud-platform
 
 echo ""

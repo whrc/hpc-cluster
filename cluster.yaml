@@ -22,6 +22,20 @@ deployment_groups:
     settings:
       allowed_ssh_ip_ranges: ["0.0.0.0/0"]
 
+  # Private Service Access is a best practice for Filestore instances
+  - id: private_service_access
+    source: modules/network/private-service-access
+    use: [network]
+
+  # Shared storage using Google Cloud Filestore (2.5TB NFS - mounted at /mnt/exacloud)
+  - id: shared_storage
+    source: modules/file-system/filestore
+    use: [network, private_service_access]
+    settings:
+      local_mount: /mnt/exacloud
+      size_gb: 2560
+      filestore_tier: BASIC_SSD
+
 - group: cluster
   modules:
   - id: dask_nodeset
@@ -31,7 +45,7 @@ deployment_groups:
       node_count_dynamic_max: 100
       machine_type: c2-standard-8
       preemptible: true
-      disk_size_gb: 100
+      disk_size_gb: 200
       instance_image:
         family: $(vars.image_family)
         project: $(vars.project_id)
@@ -43,7 +57,7 @@ deployment_groups:
       node_count_dynamic_max: 100
       machine_type: c2-standard-16
       preemptible: true
-      disk_size_gb: 100
+      disk_size_gb: 200
       instance_image:
         family: $(vars.image_family)
         project: $(vars.project_id)
@@ -55,7 +69,7 @@ deployment_groups:
       node_count_dynamic_max: 100
       machine_type: c2-standard-30
       preemptible: true
-      disk_size_gb: 100
+      disk_size_gb: 200
       instance_image:
         family: $(vars.image_family)
         project: $(vars.project_id)
@@ -87,23 +101,25 @@ deployment_groups:
     settings:
       machine_type: n2-standard-4
       enable_login_public_ips: true
-      disk_size_gb: 100
+      disk_size_gb: 200
       instance_image:
         family: $(vars.image_family)
         project: $(vars.project_id)
 
   - id: slurm_controller
     source: community/modules/scheduler/schedmd-slurm-gcp-v6-controller
-    use: [network, dask_partition, spot_partition, compute_partition, slurm_login]
+    use: [network, dask_partition, spot_partition, compute_partition, slurm_login, shared_storage]
     settings:
       enable_controller_public_ips: true
-      disk_size_gb: 100
+      disk_size_gb: 200
       instance_image:
         family: $(vars.image_family)
         project: $(vars.project_id)
       login_startup_script: |
         apt-get update
-        apt-get install tree python-is-python3 pipx
-        # git clone https://github.com/whrc/batch-processing.git /opt/batch-processing
-        # cd /opt/batch-processing
-        # python3 -m pip install .
+        apt-get install -y tree python-is-python3 pipx
+        git clone https://github.com/whrc/batch-processing.git /opt/batch-processing
+        PIPX_HOME=/usr/local/share/pipx PIPX_BIN_DIR=/usr/local/bin pipx install /opt/batch-processing
+        # Make shared filesystem writable by all users
+        chmod 1777 /mnt/exacloud
+  
