@@ -121,6 +121,7 @@ deployment_groups:
         # Make shared filesystem writable by all users
         chmod 1777 /mnt/exacloud
         chmod 1777 /opt
+        chmod 1777 /opt/apps
         git clone https://github.com/whrc/batch-processing.git /opt/batch-processing
         PIPX_HOME=/usr/local/share/pipx
         PIPX_BIN_DIR=/usr/local/bin
