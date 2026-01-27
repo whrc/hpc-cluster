@@ -2,11 +2,11 @@
 
 This repository contains deployment configurations for the HPC Cluster of the Arctic team.
 
-## Dependencies
+## Dependencies
 
 Follow the instructions of [cluster-toolkit](https://github.com/GoogleCloudPlatform/cluster-toolkit) and make sure it's installed correctly because the deployment of this infrastructure is dependent on that project.
 
-## Pre-flight Checklist
+## Pre-flight Checklist
 
 - Authenticate using `gcloud auth login`
 - Make sure the output of `gcloud config get project` matches with `project_id` in [cluster.yaml](todo). If it doesn't, run `gcloud config set project <project_id>`
