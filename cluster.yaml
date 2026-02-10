@@ -8,7 +8,7 @@
 blueprint_name: cluster
 
 vars:
-  project_id: pdg-wg-carbon
+  project_id: spherical-berm-323321
   deployment_name: cluster
   region: us-central1
   zone: us-central1-a
@@ -122,8 +122,3 @@ deployment_groups:
         chmod 1777 /mnt/exacloud
         chmod 1777 /opt
         chmod 1777 /opt/apps
-        git clone https://github.com/whrc/batch-processing.git /opt/batch-processing
-        PIPX_HOME=/usr/local/share/pipx
-        PIPX_BIN_DIR=/usr/local/bin
-        pipx install /opt/batch-processing
-  
